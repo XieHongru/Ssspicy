@@ -5,9 +5,10 @@ using UnityEngine;
 
 public class Props : MonoBehaviour
 {
+    public LayerMask detectLayer;
     public bool IsCollided(Vector2 direction)
     {
-        RaycastHit2D hit = Physics2D.Raycast(transform.position + 0.5f * (Vector3)direction, direction, 0.5f);
+        RaycastHit2D hit = Physics2D.Raycast(transform.position + 0.5f * (Vector3)direction, direction, 0.5f, detectLayer);
 
         if (!hit)
         {
