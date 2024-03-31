@@ -47,6 +47,9 @@ TagManager:
   - name: Bound
     uniqueID: 3204481283
     locked: 0
+  - name: Wall
+    uniqueID: 594474179
+    locked: 0
   - name: Ground
     uniqueID: 2604462443
     locked: 0
@@ -56,6 +59,6 @@ TagManager:
   - name: Props
     uniqueID: 1228028903
     locked: 0
-  - name: Wall
-    uniqueID: 594474179
+  - name: Stone
+    uniqueID: 2733554777
     locked: 0

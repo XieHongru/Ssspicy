@@ -9,6 +9,7 @@ public class SnakeMovement : MonoBehaviour
     public LayerMask detectLayer;
     public LayerMask backwardDetectLayer;
     public LayerMask groundLayer;
+    public Vector2 initDirection;
 
     Animator animator;
     Rigidbody2D rb;
@@ -21,6 +22,7 @@ public class SnakeMovement : MonoBehaviour
     private Vector2 preDirection;
 
     private bool isSpicy;
+    private List<Props> props_list; 
 
     Vector2[,] dirMap = new Vector2[12, 2] { { Vector2.right, Vector2.right }, { Vector2.left, Vector2.left }, { Vector2.up, Vector2.up }, { Vector2.down, Vector2.down },
                                             { Vector2.right, Vector2.down }, { Vector2.up, Vector2.left }, { Vector2.left, Vector2.down }, { Vector2.up, Vector2.right },
@@ -32,15 +34,35 @@ public class SnakeMovement : MonoBehaviour
         body_list = new LinkedList<GameObject>();
         for (int i = 1; i <= bodyLength; i++)
         {
-            Vector3 bodyPos = new Vector3(transform.position.x - i * 1f, transform.position.y, transform.position.z);
+            Vector3 bodyPos = new Vector3(transform.position.x - i * initDirection.x, transform.position.y - i * initDirection.y, transform.position.z);
             var newBody = Instantiate(body, bodyPos, Quaternion.identity);
+
+            Animator bodyAnimator = newBody.GetComponent<Animator>();
+            if(initDirection.x != 0)
+            {
+                bodyAnimator.SetBool("Horizontal", true);
+            }
+            else
+            {
+                bodyAnimator.SetBool("Vertical", true);
+            }
+
             body_list.AddLast(newBody);
         }
-        tail = Instantiate(tail, new Vector3(transform.position.x - (bodyLength + 1) * 1f, transform.position.y, transform.position.z), Quaternion.identity);
+        tail = Instantiate(tail, new Vector3(transform.position.x - (bodyLength + 1) * initDirection.x, transform.position.y - (bodyLength + 1) * initDirection.y, transform.position.z), Quaternion.identity);
+        Animator tailAnimator = tail.GetComponent<Animator>();
+        tailAnimator.SetFloat("moveX", initDirection.x);
+        tailAnimator.SetFloat("moveY", initDirection.y);
+
         animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody2D>();
-        preDirection = new Vector2(1f, 0);
+
+        animator.SetFloat("moveX", initDirection.x);
+        animator.SetFloat("moveY", initDirection.y);
+
+        preDirection = initDirection;
         isSpicy = false;
+        props_list = new List<Props>();
     }
 
     // Update is called once per frame
@@ -87,7 +109,7 @@ public class SnakeMovement : MonoBehaviour
 
     private bool IsCollided(Vector2 direction)
     {
-        RaycastHit2D hit = Physics2D.Raycast(transform.position, direction, 1.5f, detectLayer);
+        RaycastHit2D hit = Physics2D.Raycast(transform.position, direction, 1.2f, detectLayer);
 
         if (!hit)
         {
@@ -98,17 +120,21 @@ public class SnakeMovement : MonoBehaviour
             if (hit.collider.GetComponent<Props>() != null)
             {
                 var hitCollider = hit.collider;
-                bool hitBanana = hitCollider.GetComponent<Banana>();
-                bool hitPepper = hitCollider.GetComponent<Pepper>();
-                bool propsHit = hitCollider.GetComponent<Props>().IsCollided(direction);
+                var hitProp = hitCollider.GetComponent<Props>();
+                var hitBanana = hitCollider.GetComponent<Banana>();
+                var hitPepper = hitCollider.GetComponent<Pepper>();
+                bool propsHit = hitProp.IsCollided(direction, groundLayer, false);
                 if (propsHit && hitBanana)
                 {
+                    DestroyImmediate(hitBanana.gameObject);
                     EatBanana(direction);
                 }
                 if (propsHit && hitPepper)
                 {
+                    DestroyImmediate(hitPepper.gameObject);
                     EatPepper(direction);
                 }
+
                 return propsHit;
             }
             return true;
@@ -209,16 +235,41 @@ public class SnakeMovement : MonoBehaviour
 
         foreach (GameObject go in body_list)
         {
-            hit = Physics2D.Raycast(go.transform.position, -1f * direction, 1f, backwardDetectLayer);
+            hit = Physics2D.Raycast(go.transform.position, -1f * direction, .95f, backwardDetectLayer);
             if (hit)
             {
-                getCollision = true;
-                break;
+                var prop = hit.collider.GetComponent<Props>();
+                if (prop != null)
+                {
+                    props_list.Add(prop);
+                    if(prop.IsCollided(-1f *direction, groundLayer, true))
+                    {
+                        getCollision = true;
+                    }
+                }
+                else
+                {
+                    getCollision = true;
+                }
             }
         }
-        hit = Physics2D.Raycast(tail.transform.position, -1f * direction, 1f, backwardDetectLayer);
+        hit = Physics2D.Raycast(tail.transform.position, -1f * direction, .95f, backwardDetectLayer);
         if (hit)
-            getCollision = true;
+        {
+            var prop = hit.collider.GetComponent<Props>();
+            if (prop != null)
+            {
+                props_list.Add(prop);
+                if (prop.IsCollided(-1f * direction, groundLayer, true))
+                {
+                    getCollision = true;
+                }
+            }
+            else
+            {
+                getCollision = true;
+            }
+        }
 
         if (!getCollision)
         {
@@ -231,16 +282,26 @@ public class SnakeMovement : MonoBehaviour
         }
         else
         {
-            transform.position = new Vector3(Mathf.Floor(transform.position.x) + 0.5f, transform.position.y, transform.position.z);
+            Debug.Log(transform.position);
+            transform.position = new Vector3(Mathf.Floor(transform.position.x) + 0.5f, Mathf.Floor(transform.position.y) + 0.5f, transform.position.z);
             foreach (GameObject go in body_list)
             {
-                go.transform.Translate(direction * speed);
-                go.transform.position = new Vector3(Mathf.Floor(go.transform.position.x) + 0.5f, go.transform.position.y, go.transform.position.z);
+                Debug.Log(go + "," + go.transform.position);
+                go.transform.position = new Vector3(Mathf.Floor(go.transform.position.x) + 0.5f, Mathf.Floor(go.transform.position.y) + 0.5f, go.transform.position.z);
+                Debug.Log(go + "," + go.transform.position);
             }
-            tail.transform.position = new Vector3(Mathf.Floor(tail.transform.position.x) + 0.5f, tail.transform.position.y, tail.transform.position.z);
+            Debug.Log(tail + "," + tail.transform.position);
+            tail.transform.position = new Vector3(Mathf.Floor(tail.transform.position.x) + 0.5f, Mathf.Floor(tail.transform.position.y) + 0.5f, tail.transform.position.z);
             animator.SetBool("spicy", false);
             isSpicy = false;
+
+            foreach(Props p in props_list)
+            {
+                p.Stop(-1f * direction, groundLayer);
+            }
         }
+
+        props_list.Clear();
     }
 
     bool IsHung()
@@ -287,6 +348,5 @@ public class SnakeMovement : MonoBehaviour
             Destroy(go.GetComponent<BoxCollider2D>());
         }
 
-        
     }
 }
