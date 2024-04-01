@@ -3,7 +3,8 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - Hole
   layers:
   - Default
   - TransparentFX
@@ -15,7 +16,7 @@ TagManager:
   - Snake
   - Wall
   - Props
-  - 
+  - Hole
   - 
   - 
   - 
@@ -53,11 +54,11 @@ TagManager:
   - name: Ground
     uniqueID: 2604462443
     locked: 0
-  - name: Player
-    uniqueID: 2443778441
-    locked: 0
   - name: Props
     uniqueID: 1228028903
+    locked: 0
+  - name: Player
+    uniqueID: 2443778441
     locked: 0
   - name: Stone
     uniqueID: 2733554777

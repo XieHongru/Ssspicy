@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -22,12 +23,18 @@ public class SnakeMovement : MonoBehaviour
     private Vector2 preDirection;
 
     private bool isSpicy;
-    private List<Props> props_list; 
+    private List<Props> props_list;
+
+    private bool isEntering;
+    private bool isWin;
+    private int magicCount;
 
     Vector2[,] dirMap = new Vector2[12, 2] { { Vector2.right, Vector2.right }, { Vector2.left, Vector2.left }, { Vector2.up, Vector2.up }, { Vector2.down, Vector2.down },
                                             { Vector2.right, Vector2.down }, { Vector2.up, Vector2.left }, { Vector2.left, Vector2.down }, { Vector2.up, Vector2.right },
                                             { Vector2.right, Vector2.up }, { Vector2.down, Vector2.left }, { Vector2.left, Vector2.up }, { Vector2.down, Vector2.right }};
     string[] turnStates = new string[6] { "Horizontal", "Vertical", "DownLeft", "DownRight", "UpLeft", "UpRight" };
+    Vector2[] holeDirMap = new Vector2[4] { Vector2.right, Vector2.left, Vector2.up, Vector2.down };
+    string[] holeDirection = new string[4] { "right", "left", "up", "down" };
     // Start is called before the first frame update
     void Start()
     {
@@ -63,6 +70,9 @@ public class SnakeMovement : MonoBehaviour
         preDirection = initDirection;
         isSpicy = false;
         props_list = new List<Props>();
+        isEntering = false;
+        isWin = false;
+        magicCount = 0;
     }
 
     // Update is called once per frame
@@ -104,7 +114,14 @@ public class SnakeMovement : MonoBehaviour
 
     void FixedUpdate()
     {
-
+        if(isEntering)
+        {
+            if(magicCount==0)
+            {
+                DeleteLastBody();
+            }
+            magicCount = (magicCount+1)%5;
+        }
     }
 
     private bool IsCollided(Vector2 direction)
@@ -199,6 +216,8 @@ public class SnakeMovement : MonoBehaviour
 
     void EatBanana(Vector2 direction)
     {
+        FindObjectOfType<GameController>().props_count--;
+
         animator.SetFloat("moveX", direction.x);
         animator.SetFloat("moveY", direction.y);
         animator.SetBool("ateBanana", true);
@@ -214,6 +233,8 @@ public class SnakeMovement : MonoBehaviour
 
     void EatPepper(Vector2 direction)
     {
+        FindObjectOfType<GameController>().props_count--;
+
         SnakeMove(direction);
         animator.SetBool("atePepper", true);
         Invoke("FeelSpicy", 1f);
@@ -262,6 +283,7 @@ public class SnakeMovement : MonoBehaviour
                 props_list.Add(prop);
                 if (prop.IsCollided(-1f * direction, groundLayer, true))
                 {
+
                     getCollision = true;
                 }
             }
@@ -282,15 +304,11 @@ public class SnakeMovement : MonoBehaviour
         }
         else
         {
-            Debug.Log(transform.position);
             transform.position = new Vector3(Mathf.Floor(transform.position.x) + 0.5f, Mathf.Floor(transform.position.y) + 0.5f, transform.position.z);
             foreach (GameObject go in body_list)
             {
-                Debug.Log(go + "," + go.transform.position);
                 go.transform.position = new Vector3(Mathf.Floor(go.transform.position.x) + 0.5f, Mathf.Floor(go.transform.position.y) + 0.5f, go.transform.position.z);
-                Debug.Log(go + "," + go.transform.position);
             }
-            Debug.Log(tail + "," + tail.transform.position);
             tail.transform.position = new Vector3(Mathf.Floor(tail.transform.position.x) + 0.5f, Mathf.Floor(tail.transform.position.y) + 0.5f, tail.transform.position.z);
             animator.SetBool("spicy", false);
             isSpicy = false;
@@ -298,6 +316,12 @@ public class SnakeMovement : MonoBehaviour
             foreach(Props p in props_list)
             {
                 p.Stop(-1f * direction, groundLayer);
+            }
+
+            if (IsHung())
+            {
+                animator.SetBool("drop", true);
+                Invoke("Drop", .8f);
             }
         }
 
@@ -347,6 +371,76 @@ public class SnakeMovement : MonoBehaviour
             sr.sortingLayerName = "Death";
             Destroy(go.GetComponent<BoxCollider2D>());
         }
+    }
 
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if(collision.CompareTag("Hole") && FindObjectOfType<GameController>().hole_open == true)
+        {
+            EnterHole();
+        }
+    }
+
+    void EnterHole()
+    {
+        GetComponent<SpriteRenderer>().sortingLayerName = "Death";
+        Animator holeAnimator = FindObjectOfType<Hole>().GetComponent<Animator>();
+        for (int i=0; i<4; i++)
+        {
+            if ( -1f * preDirection == holeDirMap[i] )
+            {
+                Debug.Log(holeDirMap[i]);
+                holeAnimator.SetBool(holeDirection[i], true);
+                break;
+            }
+        }
+
+        isEntering = true;
+    }
+
+    void DeleteLastBody()
+    {
+        if(!isWin)
+        {
+            if (body_list.Count > 1)
+            {
+                var lastBody = body_list.Last.Value;
+                tail.transform.position = lastBody.transform.position;
+                body_list.RemoveLast();
+                Destroy(lastBody);
+                lastBody = body_list.Last.Value;
+                Animator tailAnimator = tail.GetComponent<Animator>();
+                tailAnimator.SetFloat("moveX", lastBody.transform.position.x - tail.transform.position.x);
+                tailAnimator.SetFloat("moveY", lastBody.transform.position.y - tail.transform.position.y);
+            }
+            else if (body_list.Count == 1)
+            {
+                var lastBody = body_list.Last.Value;
+                tail.transform.position = lastBody.transform.position;
+                body_list.RemoveLast();
+                Destroy(lastBody);
+                Animator tailAnimator = tail.GetComponent<Animator>();
+                tailAnimator.SetFloat("moveX", transform.position.x - tail.transform.position.x);
+                tailAnimator.SetFloat("moveY", transform.position.y - tail.transform.position.y);
+            }
+            else
+            {
+                Destroy(tail);
+                Animator holeAnimator = FindObjectOfType<Hole>().GetComponent<Animator>();
+                holeAnimator.SetBool("tail", true);
+                isWin = true;
+            }
+        }
+        else
+        {
+            Debug.Log("win");
+            GameController gc = FindObjectOfType<GameController>();
+            gc.props_count--;
+            gc.hole_open = false;
+            Animator holeAnimator = FindObjectOfType<Hole>().GetComponent<Animator>();
+            holeAnimator.SetBool("open", false);
+            isEntering = false;
+            isWin = false;
+        }
     }
 }
