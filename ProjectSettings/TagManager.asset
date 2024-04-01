@@ -5,6 +5,7 @@ TagManager:
   serializedVersion: 2
   tags:
   - Hole
+  - Props
   layers:
   - Default
   - TransparentFX
@@ -62,4 +63,7 @@ TagManager:
     locked: 0
   - name: Stone
     uniqueID: 2733554777
+    locked: 0
+  - name: Star
+    uniqueID: 1215303245
     locked: 0

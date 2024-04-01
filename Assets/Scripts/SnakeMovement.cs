@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using Cinemachine;
 
 public class SnakeMovement : MonoBehaviour
 {
@@ -17,7 +18,11 @@ public class SnakeMovement : MonoBehaviour
 
     public GameObject body;
     public GameObject tail;
+    public GameObject fire;
+    public GameObject star;
     LinkedList<GameObject> body_list;
+
+    private CinemachineImpulseSource impulseSource;
 
     private Vector2 moveDirection;
     private Vector2 preDirection;
@@ -32,7 +37,8 @@ public class SnakeMovement : MonoBehaviour
     Vector2[,] dirMap = new Vector2[12, 2] { { Vector2.right, Vector2.right }, { Vector2.left, Vector2.left }, { Vector2.up, Vector2.up }, { Vector2.down, Vector2.down },
                                             { Vector2.right, Vector2.down }, { Vector2.up, Vector2.left }, { Vector2.left, Vector2.down }, { Vector2.up, Vector2.right },
                                             { Vector2.right, Vector2.up }, { Vector2.down, Vector2.left }, { Vector2.left, Vector2.up }, { Vector2.down, Vector2.right }};
-    string[] turnStates = new string[6] { "Horizontal", "Vertical", "DownLeft", "DownRight", "UpLeft", "UpRight" };
+    //string[] turnStates = new string[6] { "Horizontal", "Vertical", "DownLeft", "DownRight", "UpLeft", "UpRight" };
+    Vector2[] turnStates = new Vector2[6] { new Vector2(1f, 0), new Vector2(0, 1f), new Vector2(-1f, 0), new Vector2(0, -1f), new Vector2(-1f, -1f), new Vector2(1f, 1f) };
     Vector2[] holeDirMap = new Vector2[4] { Vector2.right, Vector2.left, Vector2.up, Vector2.down };
     string[] holeDirection = new string[4] { "right", "left", "up", "down" };
     // Start is called before the first frame update
@@ -47,11 +53,15 @@ public class SnakeMovement : MonoBehaviour
             Animator bodyAnimator = newBody.GetComponent<Animator>();
             if(initDirection.x != 0)
             {
-                bodyAnimator.SetBool("Horizontal", true);
+                //bodyAnimator.SetBool("Horizontal", true);
+                bodyAnimator.SetFloat("bitA", 2);
+                bodyAnimator.SetFloat("bitB", 0);
             }
             else
             {
-                bodyAnimator.SetBool("Vertical", true);
+                //bodyAnimator.SetBool("Vertical", true);
+                bodyAnimator.SetFloat("bitA", 0);
+                bodyAnimator.SetFloat("bitB", 2);
             }
 
             body_list.AddLast(newBody);
@@ -67,6 +77,7 @@ public class SnakeMovement : MonoBehaviour
         animator.SetFloat("moveX", initDirection.x);
         animator.SetFloat("moveY", initDirection.y);
 
+        impulseSource = GetComponent<CinemachineImpulseSource>();
         preDirection = initDirection;
         isSpicy = false;
         props_list = new List<Props>();
@@ -199,19 +210,22 @@ public class SnakeMovement : MonoBehaviour
 
     void SetTurnDirection(Animator bodyAnimator)
     {
-        string turnState = "";
+        //string turnState = "";
         for (int i = 0; i < 12; i++)
         {
             if (preDirection == dirMap[i, 0] && moveDirection == dirMap[i, 1])
             {
-                turnState = turnStates[i / 2];
+                //turnState = turnStates[i / 2];
+                bodyAnimator.SetFloat("bitA", turnStates[i / 2].x);
+                bodyAnimator.SetFloat("bitB", turnStates[i / 2].y);
+                break;
             }
-            else
-            {
-                bodyAnimator.SetBool(turnStates[i / 2], false);
-            }
+            //else
+            //{
+            //    bodyAnimator.SetBool(turnStates[i / 2], false);
+            //}
         }
-        bodyAnimator.SetBool(turnState, true);
+        //bodyAnimator.SetBool(turnState, true);
     }
 
     void EatBanana(Vector2 direction)
@@ -229,6 +243,8 @@ public class SnakeMovement : MonoBehaviour
 
         preDirection = direction;
         transform.Translate(direction);
+        //star = Instantiate(star, new Vector3(transform.position.x + 0.6f * preDirection.x, transform.position.y + 0.6f * preDirection.y, transform.position.z), Quaternion.identity);
+        //Invoke("DeleteStar", .5f);
     }
 
     void EatPepper(Vector2 direction)
@@ -245,12 +261,15 @@ public class SnakeMovement : MonoBehaviour
         animator.SetBool("atePepper", false);
         animator.SetBool("spicy", true);
         isSpicy = true;
+        fire = Instantiate(fire, new Vector3(transform.position.x + 0.6f * preDirection.x, transform.position.y + 0.6f * preDirection.y, transform.position.z), Quaternion.identity);
     }
 
     void GoBackward(Vector2 direction)
     {
         float speed = -.01f;
         bool getCollision = false;
+
+        impulseSource.GenerateImpulseWithForce(.4f);
 
         RaycastHit2D hit;
 
@@ -296,6 +315,7 @@ public class SnakeMovement : MonoBehaviour
         if (!getCollision)
         {
             transform.Translate(direction * speed);
+            fire.transform.Translate(direction * speed);
             foreach (GameObject go in body_list)
             {
                 go.transform.Translate(direction * speed);
@@ -304,6 +324,7 @@ public class SnakeMovement : MonoBehaviour
         }
         else
         {
+            Destroy(fire);
             transform.position = new Vector3(Mathf.Floor(transform.position.x) + 0.5f, Mathf.Floor(transform.position.y) + 0.5f, transform.position.z);
             foreach (GameObject go in body_list)
             {
@@ -442,5 +463,10 @@ public class SnakeMovement : MonoBehaviour
             isEntering = false;
             isWin = false;
         }
+    }
+
+    void DeleteStar()
+    { 
+        Destroy(star);
     }
 }
