@@ -20,6 +20,7 @@ public class SnakeMovement : MonoBehaviour
     public GameObject tail;
     public GameObject fire;
     public GameObject star;
+    public ParticleSystem dust;
     LinkedList<GameObject> body_list;
 
     private CinemachineImpulseSource impulseSource;
@@ -28,7 +29,9 @@ public class SnakeMovement : MonoBehaviour
     private Vector2 preDirection;
 
     private bool isSpicy;
-    private List<Props> props_list;
+    private List<Moveable> props_list;
+    private GameObject current_star;
+    private GameObject current_fire;
 
     private bool isEntering;
     private bool isWin;
@@ -67,6 +70,7 @@ public class SnakeMovement : MonoBehaviour
             body_list.AddLast(newBody);
         }
         tail = Instantiate(tail, new Vector3(transform.position.x - (bodyLength + 1) * initDirection.x, transform.position.y - (bodyLength + 1) * initDirection.y, transform.position.z), Quaternion.identity);
+        dust = Instantiate(dust, tail.transform.position, Quaternion.identity);
         Animator tailAnimator = tail.GetComponent<Animator>();
         tailAnimator.SetFloat("moveX", initDirection.x);
         tailAnimator.SetFloat("moveY", initDirection.y);
@@ -80,7 +84,7 @@ public class SnakeMovement : MonoBehaviour
         impulseSource = GetComponent<CinemachineImpulseSource>();
         preDirection = initDirection;
         isSpicy = false;
-        props_list = new List<Props>();
+        props_list = new List<Moveable>();
         isEntering = false;
         isWin = false;
         magicCount = 0;
@@ -145,10 +149,10 @@ public class SnakeMovement : MonoBehaviour
         }
         else
         {
-            if (hit.collider.GetComponent<Props>() != null)
+            if (hit.collider.GetComponent<Moveable>() != null)
             {
                 var hitCollider = hit.collider;
-                var hitProp = hitCollider.GetComponent<Props>();
+                var hitProp = hitCollider.GetComponent<Moveable>();
                 var hitBanana = hitCollider.GetComponent<Banana>();
                 var hitPepper = hitCollider.GetComponent<Pepper>();
                 bool propsHit = hitProp.IsCollided(direction, groundLayer, false);
@@ -179,6 +183,8 @@ public class SnakeMovement : MonoBehaviour
         {
             var lastBody = body_list.Last.Value;
             body_list.RemoveLast();
+            dust.transform.position = (tail.transform.position + lastBody.transform.position) / 2;
+            dust.Play();
             tail.transform.position = lastBody.transform.position;
             lastBody.transform.position = transform.position;
             Animator bodyAnimator = lastBody.GetComponent<Animator>();
@@ -192,6 +198,8 @@ public class SnakeMovement : MonoBehaviour
         }
         else
         {
+            dust.transform.position = (tail.transform.position + transform.position) / 2;
+            dust.Play();
             tail.transform.position = transform.position;
             Animator tailAnimator = tail.GetComponent<Animator>();
             tailAnimator.SetFloat("moveX", direction.x);
@@ -243,8 +251,8 @@ public class SnakeMovement : MonoBehaviour
 
         preDirection = direction;
         transform.Translate(direction);
-        //star = Instantiate(star, new Vector3(transform.position.x + 0.6f * preDirection.x, transform.position.y + 0.6f * preDirection.y, transform.position.z), Quaternion.identity);
-        //Invoke("DeleteStar", .5f);
+        current_star = Instantiate(star, new Vector3(transform.position.x + 0.6f * preDirection.x, transform.position.y + 0.6f * preDirection.y, transform.position.z), Quaternion.identity);
+        Invoke("DeleteStar", .3f);
     }
 
     void EatPepper(Vector2 direction)
@@ -253,15 +261,19 @@ public class SnakeMovement : MonoBehaviour
 
         SnakeMove(direction);
         animator.SetBool("atePepper", true);
-        Invoke("FeelSpicy", 1f);
+        Invoke("FeelSpicy", .8f);
     }
 
     void FeelSpicy()
     {
         animator.SetBool("atePepper", false);
         animator.SetBool("spicy", true);
+        current_fire = Instantiate(fire, new Vector3(transform.position.x + 0.6f * preDirection.x, transform.position.y + 0.6f * preDirection.y, transform.position.z), Quaternion.identity); 
+        current_fire.transform.eulerAngles = new Vector3(0, Mathf.Abs(preDirection.x) * (preDirection.x * 90f - 90f), preDirection.y * 90f);
+        RaycastHit2D hit = Physics2D.Raycast(transform.position, preDirection, 1.2f, detectLayer);
+        if (hit.collider.CompareTag("Ice"))
+            hit.collider.GetComponent<Ice>().DeleteSelf();
         isSpicy = true;
-        fire = Instantiate(fire, new Vector3(transform.position.x + 0.6f * preDirection.x, transform.position.y + 0.6f * preDirection.y, transform.position.z), Quaternion.identity);
     }
 
     void GoBackward(Vector2 direction)
@@ -278,7 +290,7 @@ public class SnakeMovement : MonoBehaviour
             hit = Physics2D.Raycast(go.transform.position, -1f * direction, .95f, backwardDetectLayer);
             if (hit)
             {
-                var prop = hit.collider.GetComponent<Props>();
+                var prop = hit.collider.GetComponent<Moveable>();
                 if (prop != null)
                 {
                     props_list.Add(prop);
@@ -296,7 +308,7 @@ public class SnakeMovement : MonoBehaviour
         hit = Physics2D.Raycast(tail.transform.position, -1f * direction, .95f, backwardDetectLayer);
         if (hit)
         {
-            var prop = hit.collider.GetComponent<Props>();
+            var prop = hit.collider.GetComponent<Moveable>();
             if (prop != null)
             {
                 props_list.Add(prop);
@@ -315,7 +327,14 @@ public class SnakeMovement : MonoBehaviour
         if (!getCollision)
         {
             transform.Translate(direction * speed);
-            fire.transform.Translate(direction * speed);
+            if(direction == Vector2.right || direction == Vector2.left)
+            {
+                current_fire.transform.Translate(direction.x * direction * speed);
+            }
+            else
+            {
+                current_fire.transform.Translate(direction.y * new Vector2(direction.y, direction.x) * speed);
+            }
             foreach (GameObject go in body_list)
             {
                 go.transform.Translate(direction * speed);
@@ -324,7 +343,8 @@ public class SnakeMovement : MonoBehaviour
         }
         else
         {
-            Destroy(fire);
+            Destroy(current_fire);
+            current_fire = null;
             transform.position = new Vector3(Mathf.Floor(transform.position.x) + 0.5f, Mathf.Floor(transform.position.y) + 0.5f, transform.position.z);
             foreach (GameObject go in body_list)
             {
@@ -334,7 +354,7 @@ public class SnakeMovement : MonoBehaviour
             animator.SetBool("spicy", false);
             isSpicy = false;
 
-            foreach(Props p in props_list)
+            foreach(Moveable p in props_list)
             {
                 p.Stop(-1f * direction, groundLayer);
             }
@@ -466,7 +486,9 @@ public class SnakeMovement : MonoBehaviour
     }
 
     void DeleteStar()
-    { 
-        Destroy(star);
+    {
+        Destroy(current_star);
+        current_star = null;
     }
+
 }

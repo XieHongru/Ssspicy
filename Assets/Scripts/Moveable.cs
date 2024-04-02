@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 
-public class Props : MonoBehaviour
+public class Moveable : MonoBehaviour
 {
     public LayerMask detectLayer;
     public bool IsCollided(Vector2 direction, LayerMask groundLayer, bool isBackward)
@@ -20,9 +20,9 @@ public class Props : MonoBehaviour
             }
             else
             {
-                if (hit.collider.GetComponent<Props>() != null)
+                if (hit.collider.GetComponent<Moveable>() != null)
                 {
-                    if (hit.collider.GetComponent<Props>().IsCollided(direction, groundLayer, isBackward))
+                    if (hit.collider.GetComponent<Moveable>().IsCollided(direction, groundLayer, isBackward))
                     {
                         //transform.Translate(direction);
                         return true;
@@ -47,9 +47,9 @@ public class Props : MonoBehaviour
             }
             else
             {
-                if (hit.collider.GetComponent<Props>() != null)
+                if (hit.collider.GetComponent<Moveable>() != null)
                 {
-                    if (hit.collider.GetComponent<Props>().IsCollided(direction, groundLayer, isBackward))
+                    if (hit.collider.GetComponent<Moveable>().IsCollided(direction, groundLayer, isBackward))
                     {
                         //transform.Translate(direction);
                         return true;
@@ -103,9 +103,9 @@ public class Props : MonoBehaviour
         RaycastHit2D hit = Physics2D.Raycast(transform.position + 0.5f * (Vector3)direction, direction, 0.5f, detectLayer);
         if(hit)
         {
-            if (hit.collider.GetComponent<Props>() != null)
+            if (hit.collider.GetComponent<Moveable>() != null)
             {
-                hit.collider.GetComponent<Props>().Stop(direction, groundLayer);
+                hit.collider.GetComponent<Moveable>().Stop(direction, groundLayer);
             }
         }
         transform.position = new Vector3(Mathf.Floor(transform.position.x) + 0.5f, Mathf.Floor(transform.position.y) + 0.7f, transform.position.z);

@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 2719825316996157045}
   - component: {fileID: 6673834948137830841}
   - component: {fileID: 953556691818296902}
-  m_Layer: 9
+  m_Layer: 12
   m_Name: Pepper
   m_TagString: Props
   m_Icon: {fileID: 0}
@@ -173,4 +173,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   detectLayer:
     serializedVersion: 2
-    m_Bits: 896
+    m_Bits: 6528

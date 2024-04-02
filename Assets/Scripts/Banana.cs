@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Banana : Props
+public class Banana : Moveable
 {
     //public bool IsCollided(Vector2 direction)
     //{

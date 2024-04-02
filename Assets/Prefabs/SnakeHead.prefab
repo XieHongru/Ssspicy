@@ -104,10 +104,10 @@ MonoBehaviour:
   bodyLength: 2
   detectLayer:
     serializedVersion: 2
-    m_Bits: 896
+    m_Bits: 6528
   backwardDetectLayer:
     serializedVersion: 2
-    m_Bits: 768
+    m_Bits: 6400
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
@@ -115,6 +115,8 @@ MonoBehaviour:
   body: {fileID: 2954031332996090742, guid: c116a7655d965c5498baef3da2b48851, type: 3}
   tail: {fileID: 7632332217807444964, guid: 82fef4f6b4f45484f9fbc323272ee5bd, type: 3}
   fire: {fileID: 7197593911863682566, guid: 75ab414350aa50b4c9cd031ae4e0c533, type: 3}
+  star: {fileID: 3719424740189104591, guid: 9a1b03407a4f0f544aaa539dee095ff1, type: 3}
+  dust: {fileID: 7512386455532368790, guid: 2851147ff75e7374eb63434ac90a1994, type: 3}
 --- !u!50 &8116651909403317199
 Rigidbody2D:
   serializedVersion: 4

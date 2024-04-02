@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Hole
   - Props
+  - Ice
   layers:
   - Default
   - TransparentFX
@@ -16,11 +17,11 @@ TagManager:
   - Bound
   - Snake
   - Wall
+  - 
+  - 
+  - Ice
   - Props
   - Hole
-  - 
-  - 
-  - 
   - 
   - 
   - 
@@ -64,6 +65,9 @@ TagManager:
   - name: Stone
     uniqueID: 2733554777
     locked: 0
-  - name: Star
+  - name: Ice
+    uniqueID: 1694123291
+    locked: 0
+  - name: Partical
     uniqueID: 1215303245
     locked: 0
