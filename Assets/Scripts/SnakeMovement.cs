@@ -32,9 +32,11 @@ public class SnakeMovement : MonoBehaviour
     private List<Moveable> props_list;
     private GameObject current_star;
     private GameObject current_fire;
+    private Collider2D current_trigger;
 
     private bool isEntering;
     private bool isWin;
+    private bool isDrop;
     private int magicCount;
 
     Vector2[,] dirMap = new Vector2[12, 2] { { Vector2.right, Vector2.right }, { Vector2.left, Vector2.left }, { Vector2.up, Vector2.up }, { Vector2.down, Vector2.down },
@@ -87,6 +89,7 @@ public class SnakeMovement : MonoBehaviour
         props_list = new List<Moveable>();
         isEntering = false;
         isWin = false;
+        isDrop = false;
         magicCount = 0;
     }
 
@@ -133,6 +136,14 @@ public class SnakeMovement : MonoBehaviour
         {
             if(magicCount==0)
             {
+                if(isWin)
+                {
+                    GameWin();
+                }
+                if(isDrop)
+                {
+                    TrapComplete();
+                }
                 DeleteLastBody();
             }
             magicCount = (magicCount+1)%5;
@@ -273,6 +284,8 @@ public class SnakeMovement : MonoBehaviour
         RaycastHit2D hit = Physics2D.Raycast(transform.position, preDirection, 1.2f, detectLayer);
         if (hit.collider.CompareTag("Ice"))
             hit.collider.GetComponent<Ice>().DeleteSelf();
+        if (hit.collider.CompareTag("Wood"))
+            hit.collider.GetComponent<Wood>().DeleteSelf();
         isSpicy = true;
     }
 
@@ -287,7 +300,7 @@ public class SnakeMovement : MonoBehaviour
 
         foreach (GameObject go in body_list)
         {
-            hit = Physics2D.Raycast(go.transform.position, -1f * direction, .95f, backwardDetectLayer);
+            hit = Physics2D.Raycast(go.transform.position, -1f * direction, .7f, backwardDetectLayer);
             if (hit)
             {
                 var prop = hit.collider.GetComponent<Moveable>();
@@ -305,7 +318,7 @@ public class SnakeMovement : MonoBehaviour
                 }
             }
         }
-        hit = Physics2D.Raycast(tail.transform.position, -1f * direction, .95f, backwardDetectLayer);
+        hit = Physics2D.Raycast(tail.transform.position, -1f * direction, .7f, backwardDetectLayer);
         if (hit)
         {
             var prop = hit.collider.GetComponent<Moveable>();
@@ -418,7 +431,14 @@ public class SnakeMovement : MonoBehaviour
     {
         if(collision.CompareTag("Hole") && FindObjectOfType<GameController>().hole_open == true)
         {
+            current_trigger = collision;
             EnterHole();
+        }
+        if(collision.CompareTag("Trap") && !isSpicy)
+        {
+            animator.SetBool("drop", true);
+            current_trigger = collision;
+            Invoke("EnterTrap", .8f);
         }
     }
 
@@ -439,50 +459,77 @@ public class SnakeMovement : MonoBehaviour
         isEntering = true;
     }
 
+    void EnterTrap()
+    {
+        GetComponent<SpriteRenderer>().sortingLayerName = "Death";
+        Animator trapAnimator = current_trigger.GetComponent<Animator>();
+        trapAnimator.SetFloat("moveX", preDirection.x);
+        trapAnimator.SetFloat("moveY", preDirection.y);
+        trapAnimator.SetBool("isDrop", true);
+
+        isEntering = true;
+    }
+
     void DeleteLastBody()
     {
-        if(!isWin)
+        if (body_list.Count > 1)
         {
-            if (body_list.Count > 1)
+            var lastBody = body_list.Last.Value;
+            tail.transform.position = lastBody.transform.position;
+            body_list.RemoveLast();
+            Destroy(lastBody);
+            lastBody = body_list.Last.Value;
+            Animator tailAnimator = tail.GetComponent<Animator>();
+            tailAnimator.SetFloat("moveX", lastBody.transform.position.x - tail.transform.position.x);
+            tailAnimator.SetFloat("moveY", lastBody.transform.position.y - tail.transform.position.y);
+        }
+        else if (body_list.Count == 1)
+        {
+            var lastBody = body_list.Last.Value;
+            tail.transform.position = lastBody.transform.position;
+            body_list.RemoveLast();
+            Destroy(lastBody);
+            Animator tailAnimator = tail.GetComponent<Animator>();
+            tailAnimator.SetFloat("moveX", transform.position.x - tail.transform.position.x);
+            tailAnimator.SetFloat("moveY", transform.position.y - tail.transform.position.y);
+        }
+        else
+        {
+            Destroy(tail);
+            if(current_trigger.CompareTag("Hole"))
             {
-                var lastBody = body_list.Last.Value;
-                tail.transform.position = lastBody.transform.position;
-                body_list.RemoveLast();
-                Destroy(lastBody);
-                lastBody = body_list.Last.Value;
-                Animator tailAnimator = tail.GetComponent<Animator>();
-                tailAnimator.SetFloat("moveX", lastBody.transform.position.x - tail.transform.position.x);
-                tailAnimator.SetFloat("moveY", lastBody.transform.position.y - tail.transform.position.y);
-            }
-            else if (body_list.Count == 1)
-            {
-                var lastBody = body_list.Last.Value;
-                tail.transform.position = lastBody.transform.position;
-                body_list.RemoveLast();
-                Destroy(lastBody);
-                Animator tailAnimator = tail.GetComponent<Animator>();
-                tailAnimator.SetFloat("moveX", transform.position.x - tail.transform.position.x);
-                tailAnimator.SetFloat("moveY", transform.position.y - tail.transform.position.y);
-            }
-            else
-            {
-                Destroy(tail);
                 Animator holeAnimator = FindObjectOfType<Hole>().GetComponent<Animator>();
                 holeAnimator.SetBool("tail", true);
                 isWin = true;
             }
+            if(current_trigger.CompareTag("Trap"))
+            {
+                Animator trapAnimator = current_trigger.GetComponent<Animator>();
+                trapAnimator.SetBool("tail", true);
+                isDrop = true;
+            }
         }
-        else
-        {
-            Debug.Log("win");
-            GameController gc = FindObjectOfType<GameController>();
-            gc.props_count--;
-            gc.hole_open = false;
-            Animator holeAnimator = FindObjectOfType<Hole>().GetComponent<Animator>();
-            holeAnimator.SetBool("open", false);
-            isEntering = false;
-            isWin = false;
-        }
+    }
+
+    void GameWin()
+    {
+        Debug.Log("win");
+        GameController gc = FindObjectOfType<GameController>();
+        gc.props_count--;
+        gc.hole_open = false;
+        Animator holeAnimator = FindObjectOfType<Hole>().GetComponent<Animator>();
+        holeAnimator.SetBool("open", false);
+        isEntering = false;
+        isWin = false;
+    }
+
+    void TrapComplete()
+    {
+        Animator trapAnimator = current_trigger.GetComponent<Animator>();
+        trapAnimator.SetBool("isDrop", false);
+        trapAnimator.SetBool("tail", false);
+        isEntering = false;
+        isDrop = false;
     }
 
     void DeleteStar()

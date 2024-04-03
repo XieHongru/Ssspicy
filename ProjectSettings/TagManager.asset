@@ -7,6 +7,8 @@ TagManager:
   - Hole
   - Props
   - Ice
+  - Trap
+  - Wood
   layers:
   - Default
   - TransparentFX
@@ -18,7 +20,7 @@ TagManager:
   - Snake
   - Wall
   - 
-  - 
+  - Wood
   - Ice
   - Props
   - Hole
@@ -56,6 +58,9 @@ TagManager:
   - name: Ground
     uniqueID: 2604462443
     locked: 0
+  - name: Trap
+    uniqueID: 465799197
+    locked: 0
   - name: Props
     uniqueID: 1228028903
     locked: 0
@@ -67,6 +72,9 @@ TagManager:
     locked: 0
   - name: Ice
     uniqueID: 1694123291
+    locked: 0
+  - name: Wood
+    uniqueID: 3663959681
     locked: 0
   - name: Partical
     uniqueID: 1215303245
