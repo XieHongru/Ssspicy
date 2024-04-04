@@ -189,6 +189,7 @@ public class SnakeMovement : MonoBehaviour
         animator.SetFloat("moveX", direction.x);
         animator.SetFloat("moveY", direction.y);
         animator.SetBool("ateBanana", false);
+        animator.SetBool("atePepper", false);
 
         if (body_list.Count > 0)
         {
@@ -277,7 +278,6 @@ public class SnakeMovement : MonoBehaviour
 
     void FeelSpicy()
     {
-        animator.SetBool("atePepper", false);
         animator.SetBool("spicy", true);
         current_fire = Instantiate(fire, new Vector3(transform.position.x + 0.6f * preDirection.x, transform.position.y + 0.6f * preDirection.y, transform.position.z), Quaternion.identity); 
         current_fire.transform.eulerAngles = new Vector3(0, Mathf.Abs(preDirection.x) * (preDirection.x * 90f - 90f), preDirection.y * 90f);
